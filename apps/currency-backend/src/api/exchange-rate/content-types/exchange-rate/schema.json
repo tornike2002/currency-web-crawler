@@ -1,0 +1,46 @@
+{
+  "kind": "collectionType",
+  "collectionName": "exchange_rates",
+  "info": {
+    "singularName": "exchange-rate",
+    "pluralName": "exchange-rates",
+    "displayName": "Exchange Rate"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "source": {
+      "type": "string",
+      "maxLength": 50,
+      "required": true,
+      "unique": true
+    },
+    "currency": {
+      "type": "string",
+      "default": "USD",
+      "maxLength": 3,
+      "required": true
+    },
+    "rate": {
+      "type": "decimal"
+    },
+    "buyRate": {
+      "type": "decimal",
+      "required": true
+    },
+    "sellRate": {
+      "type": "decimal",
+      "required": true
+    },
+    "officialRate": {
+      "type": "decimal",
+      "required": false
+    },
+    "scrapedAt": {
+      "type": "date",
+      "required": true
+    }
+  }
+}
