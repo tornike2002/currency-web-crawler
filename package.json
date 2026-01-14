@@ -1,13 +1,31 @@
 {
   "name": "currency-scraper",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Currency exchange rate monitoring system for Georgian banks",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
+    "crawler:start": "npm run start --workspace=crawler",
+    "crawler:schedule": "npm run schedule --workspace=crawler",
+    "backend:dev": "npm run dev --workspace=currency-backend",
+    "backend:build": "npm run build --workspace=currency-backend",
+    "backend:start": "npm run start --workspace=currency-backend",
+    "frontend:dev": "npm run dev --workspace=currency-frontend",
+    "frontend:build": "npm run build --workspace=currency-frontend",
+    "frontend:start": "npm run start --workspace=currency-frontend",
+    "install:all": "npm install",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
+  "keywords": [
+    "currency",
+    "scraper",
+    "exchange-rates",
+    "georgia",
+    "strapi",
+    "nextjs"
+  ],
   "author": "",
-  "license": "ISC",
-  "type": "commonjs"
+  "license": "ISC"
 }

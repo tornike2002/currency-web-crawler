@@ -1,172 +1,250 @@
-# Currency Frontend
+# Currency Scraper
 
-A modern Next.js frontend application for displaying real-time USD/GEL exchange rates from Georgian banks.
+A complete currency exchange rate monitoring system for Georgian banks. This monorepo consists of three applications: a crawler that scrapes exchange rates, a Strapi backend for data storage, and a Next.js frontend for displaying the data.
 
 ## Overview
 
-This application fetches currency exchange rate data from the Strapi backend and displays it in a beautiful, dark-themed interface. The rates are updated daily via a crawler that scrapes data from major Georgian banks.
+This system automatically collects USD/GEL exchange rates from major Georgian banks (Bank of Georgia, TBC Bank) and stores them in a database. The data is then displayed in a modern web interface with statistics, trends, and historical analysis.
 
-## Features
+## Architecture
 
-- Real-time exchange rate data from Georgian banks (Bank of Georgia, TBC Bank)
-- Dark mode interface with modern design
-- Table view for easy comparison of rates across banks
-- Statistics dashboard showing averages, best rates, and trends
-- Color-coded indicators for rate changes (last 7 days)
-- Server-side data fetching for optimal performance
-- Responsive design for all screen sizes
+The project is organized as a monorepo with three main applications:
 
-## Tech Stack
+1. **Crawler** - Scrapes exchange rates from bank websites
+2. **Backend** - Strapi API for storing and serving exchange rate data
+3. **Frontend** - Next.js application for displaying rates
 
-- Next.js 16 (App Router)
-- TypeScript
-- Tailwind CSS
-- Axios
-- Lucide React (Icons)
-- Server Actions
+## Quick Start
 
-## Prerequisites
+### Prerequisites
 
-- Node.js 20+ 
+- Node.js 20+
+- PostgreSQL (for Strapi backend)
 - npm or yarn
-- Strapi backend running (see currency-backend)
 
-## Setup
+### Setup
 
-1. Install dependencies:
+1. Clone the repository
+
+2. Install dependencies for all apps (using npm workspaces):
 
 ```bash
+# Install all dependencies from root (installs for all workspaces)
 npm install
 ```
 
-2. Create `.env.local` file in the root directory:
+This will install dependencies for all three apps automatically thanks to npm workspaces configuration.
+
+3. Configure environment variables:
+
+- **Crawler**: Create `apps/crawler/.env` (see crawler README)
+- **Backend**: Configure Strapi database (see backend README)
+- **Frontend**: Create `apps/currency-frontend/.env.local` with `NEXT_PUBLIC_STRAPI_URL=http://localhost:1337`
+
+4. Start the applications:
+
+You can run commands from the root directory using workspace scripts:
 
 ```bash
+# Terminal 1: Start Strapi backend
+npm run backend:dev
+
+# Terminal 2: Start frontend
+npm run frontend:dev
+
+# Terminal 3: Run crawler (manual) or start scheduler
+npm run crawler:start      # Manual run
+npm run crawler:schedule   # Scheduled (runs every 24 hours)
+```
+
+Or run from individual directories (both methods work):
+
+```bash
+# Terminal 1: Start Strapi backend
+cd apps/currency-backend
+npm run develop
+
+# Terminal 2: Start frontend
+cd apps/currency-frontend
+npm run dev
+
+# Terminal 3: Run crawler
+cd apps/crawler
+npm start  # Manual run
+npm run schedule  # Scheduled
+```
+
+5. Access the applications:
+
+- Frontend: http://localhost:3000
+- Strapi Admin: http://localhost:1337/admin
+- Strapi API: http://localhost:1337/api
+
+## Applications
+
+### Crawler (`apps/crawler`)
+
+Web scraper that collects exchange rates from Georgian banks.
+
+**Features:**
+- API-based scraping for Bank of Georgia (fast and reliable)
+- Puppeteer-based scraping for TBC Bank
+- Automatic data synchronization with Strapi
+- Scheduled runs with cron jobs
+- Error handling and retry logic
+
+**Key Files:**
+- `src/index.js` - Main entry point
+- `src/scheduler.js` - Cron job scheduler
+- `src/scrapers/` - Bank-specific scrapers
+- `src/services/StrapiService.js` - Strapi integration
+
+**Documentation:** See `apps/crawler/README.md`
+
+### Backend (`apps/currency-backend`)
+
+Strapi CMS backend for storing and serving exchange rate data.
+
+**Features:**
+- PostgreSQL database
+- REST API for exchange rates
+- Admin panel for data management
+- Content type: `exchange-rate`
+
+**Content Type Schema:**
+- `source` (string) - Bank name
+- `currency` (string) - Currency code (USD)
+- `buyRate` (decimal) - Buy rate
+- `sellRate` (decimal) - Sell rate
+- `officialRate` (decimal) - Official rate
+- `scrapedAt` (date) - Timestamp
+
+**Documentation:** See `apps/currency-backend/README.md`
+
+### Frontend (`apps/currency-frontend`)
+
+Next.js application for displaying exchange rates.
+
+**Features:**
+- Dark mode interface
+- Table view for rate comparison
+- Statistics dashboard
+- Color-coded rate changes (last 7 days)
+- Server-side rendering
+- Responsive design
+
+**Key Technologies:**
+- Next.js 16 (App Router)
+- TypeScript
+- Tailwind CSS
+- Server Actions
+
+**Documentation:** See `apps/currency-frontend/README.md`
+
+## Data Flow
+
+1. **Crawler** runs on schedule (daily at midnight)
+2. Scrapes rates from Bank of Georgia (API) and TBC Bank (Puppeteer)
+3. Saves data to **Strapi Backend** via API
+4. **Frontend** fetches data from Strapi and displays it
+
+## Environment Configuration
+
+### Crawler
+
+```bash
+# apps/crawler/.env
+HEADLESS=true
+TIMEOUT=30000
+LOG_LEVEL=info
+STRAPI_URL=http://localhost:1337
+STRAPI_API_TOKEN=your-token-here
+CRON_SCHEDULE=0 0 * * *
+TIMEZONE=Asia/Tbilisi
+```
+
+### Backend
+
+Configure database connection in `apps/currency-backend/config/database.ts`
+
+### Frontend
+
+```bash
+# apps/currency-frontend/.env.local
 NEXT_PUBLIC_STRAPI_URL=http://localhost:1337
 ```
 
-Replace with your Strapi URL if different.
+## Development Workflow
 
-3. Run the development server:
+1. **Start Strapi backend** - Provides API for data storage
+2. **Run crawler** - Collects initial data
+3. **Start frontend** - Displays the data
+4. **Set up scheduler** - Automates daily data collection
 
-```bash
-npm run dev
-```
+## Production Deployment
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser
+Each application can be deployed independently:
+
+- **Crawler**: Deploy as a scheduled job (PM2, systemd, or cloud scheduler)
+- **Backend**: Deploy Strapi to a Node.js hosting service
+- **Frontend**: Deploy Next.js to Vercel, Netlify, or similar
+
+See individual README files for deployment instructions.
+
+## NPM Workspaces
+
+This project uses npm workspaces to manage all three applications. This provides:
+
+- Single dependency installation: Run `npm install` from root to install all dependencies
+- Dependency deduplication: Shared dependencies are hoisted to root `node_modules`
+- Convenient scripts: Run commands from root using workspace scripts
+
+### Available Workspace Scripts (from root)
+
+**Crawler:**
+- `npm run crawler:start` - Run crawler manually
+- `npm run crawler:schedule` - Start scheduler (runs every 24 hours)
+
+**Backend:**
+- `npm run backend:dev` - Start Strapi development server
+- `npm run backend:build` - Build Strapi for production
+- `npm run backend:start` - Start Strapi production server
+
+**Frontend:**
+- `npm run frontend:dev` - Start Next.js development server
+- `npm run frontend:build` - Build Next.js for production
+- `npm run frontend:start` - Start Next.js production server
+
+You can also run scripts directly from each app's directory using their individual `package.json` scripts.
 
 ## Project Structure
 
 ```
-apps/currency-frontend/
-├── app/
-│   ├── actions/
-│   │   └── exchange-rates.ts    # Server actions for data fetching
-│   ├── page.tsx                  # Main page (Server Component)
-│   ├── layout.tsx                # Root layout
-│   └── globals.css               # Global styles
-├── components/
-│   ├── exchange-rates-client.tsx # Main client component
-│   ├── rate-table.tsx            # Table component for rates
-│   ├── rate-group-table.tsx      # Grouped table view
-│   ├── rate-card-enhanced.tsx    # Enhanced card component
-│   ├── rate-group-enhanced.tsx   # Grouped card view
-│   └── stat-card.tsx             # Statistics card component
-└── lib/
-    ├── types.ts                  # TypeScript type definitions
-    ├── helpers.ts                # Utility functions
-    └── utils.ts                  # Common utilities
+currency-scraper/
+├── apps/
+│   ├── crawler/              # Web scraper
+│   │   ├── src/
+│   │   │   ├── scrapers/     # Bank-specific scrapers
+│   │   │   ├── services/     # Strapi integration
+│   │   │   └── utils/        # Helper functions
+│   │   └── package.json
+│   ├── currency-backend/     # Strapi backend
+│   │   ├── src/
+│   │   │   └── api/
+│   │   │       └── exchange-rate/
+│   │   └── package.json
+│   └── currency-frontend/    # Next.js frontend
+│       ├── app/
+│       ├── components/
+│       └── package.json
+├── package.json              # Root workspace configuration
+└── README.md
 ```
-
-## Environment Variables
-
-- `NEXT_PUBLIC_STRAPI_URL` - URL of your Strapi backend (default: http://localhost:1337)
-
-## Available Scripts
-
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run start` - Start production server
-- `npm run lint` - Run ESLint
-
-## Data Flow
-
-1. Server Component (`app/page.tsx`) fetches data using Server Actions
-2. Data is passed as props to Client Component
-3. Client Component handles interactivity (refresh, expand/collapse)
-4. Data is grouped by date and displayed in tables
-
-## Display Modes
-
-The application currently uses table view by default, showing:
-- Bank name
-- Official rate
-- Buy rate
-- Sell rate
-- Spread (difference between buy and sell)
-- Change indicator (with color coding for last 7 days)
-- Time of data collection
-
-## Color Coding
-
-Rates from the last 7 days are color-coded:
-- Green background: Rate improved (went down, better for buyers)
-- Red background: Rate worsened (went up, worse for buyers)
-- Default: Older than 7 days
-
-## Statistics Dashboard
-
-The dashboard displays:
-- Average buy rate
-- Average sell rate
-- Best buy rate (lowest)
-- Total records count
-
-## Building for Production
-
-1. Build the application:
-
-```bash
-npm run build
-```
-
-2. Start the production server:
-
-```bash
-npm run start
-```
-
-## Troubleshooting
-
-### Data not loading
-
-- Ensure Strapi backend is running
-- Check `NEXT_PUBLIC_STRAPI_URL` is correct
-- Verify Strapi API permissions are set correctly
-- Check browser console for errors
-
-### Styling issues
-
-- Clear `.next` cache: `rm -rf .next`
-- Reinstall dependencies: `rm -rf node_modules && npm install`
-
-## Integration with Backend
-
-This frontend expects the Strapi backend to have:
-- Content type: `exchange-rate`
-- Fields: `source`, `currency`, `buyRate`, `sellRate`, `officialRate`, `scrapedAt`
-- API endpoint: `/api/exchange-rates`
-
-See the currency-backend README for backend setup instructions.
-
-## Development
-
-The application uses:
-- Server Components for initial data fetching
-- Client Components for interactive features
-- Server Actions for data fetching from the server
-- TypeScript for type safety
 
 ## License
 
-Part of the currency-scraper monorepo project.
+MIT License
+
+## Contributing
+
+This is a personal project. Contributions and suggestions are welcome.
