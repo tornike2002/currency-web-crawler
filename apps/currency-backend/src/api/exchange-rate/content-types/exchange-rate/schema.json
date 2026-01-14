@@ -15,16 +15,13 @@
       "type": "string",
       "maxLength": 50,
       "required": true,
-      "unique": true
+      "unique": false
     },
     "currency": {
       "type": "string",
       "default": "USD",
       "maxLength": 3,
       "required": true
-    },
-    "rate": {
-      "type": "decimal"
     },
     "buyRate": {
       "type": "decimal",

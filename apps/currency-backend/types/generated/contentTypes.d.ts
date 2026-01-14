@@ -460,12 +460,10 @@ export interface ApiExchangeRateExchangeRate
       Schema.Attribute.Private;
     officialRate: Schema.Attribute.Decimal;
     publishedAt: Schema.Attribute.DateTime;
-    rate: Schema.Attribute.Decimal;
     scrapedAt: Schema.Attribute.Date & Schema.Attribute.Required;
     sellRate: Schema.Attribute.Decimal & Schema.Attribute.Required;
     source: Schema.Attribute.String &
       Schema.Attribute.Required &
-      Schema.Attribute.Unique &
       Schema.Attribute.SetMinMaxLength<{
         maxLength: 50;
       }>;

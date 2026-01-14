@@ -5,6 +5,7 @@
 
 require('dotenv').config();
 const CurrencyCrawler = require('./classes/CurrencyCrawler');
+const StrapiService = require('./services/StrapiService');
 const { log } = require('./utils/helpers');
 
 /**
@@ -16,7 +17,21 @@ async function main() {
     timeout: parseInt(process.env.TIMEOUT || '30000')
   });
 
+  // Initialize Strapi service
+  const strapiService = new StrapiService({
+    baseUrl: process.env.STRAPI_URL,
+    apiToken: process.env.STRAPI_API_TOKEN
+  });
+
   try {
+    // Test Strapi connection (optional, only if STRAPI_URL is set)
+    if (process.env.STRAPI_URL) {
+      const connected = await strapiService.testConnection();
+      if (!connected) {
+        log('warn', 'Strapi connection failed, but continuing with scraping...');
+      }
+    }
+
     // Initialize the crawler
     await crawler.initialize();
 
@@ -32,6 +47,22 @@ async function main() {
     if (process.env.JSON_OUTPUT === 'true') {
       console.log('\nJSON Output:');
       console.log(JSON.stringify(results, null, 2));
+    }
+
+    // Save to Strapi if configured
+    if (process.env.STRAPI_URL && results.success.length > 0) {
+      log('info', '\n📤 Syncing data to Strapi...');
+      const strapiResults = await strapiService.saveExchangeRates(results.success);
+      
+      log('info', `✓ Strapi sync complete: ${strapiResults.results.length} saved, ${strapiResults.errors.length} failed`);
+      
+      if (strapiResults.errors.length > 0) {
+        log('warn', 'Some rates failed to save to Strapi:', 
+          strapiResults.errors.map(e => `${e.bank}: ${e.error}`).join(', ')
+        );
+      }
+    } else if (!process.env.STRAPI_URL) {
+      log('info', '\nℹ️  Strapi not configured. Set STRAPI_URL and STRAPI_API_TOKEN to sync data.');
     }
 
     // Exit code based on results

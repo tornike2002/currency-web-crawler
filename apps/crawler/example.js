@@ -3,7 +3,9 @@
  * This demonstrates different ways to use the crawler
  */
 
+require('dotenv').config();
 const { CurrencyCrawler } = require('./src');
+const StrapiService = require('./src/services/StrapiService');
 
 async function example1_CrawlAll() {
   console.log('\n=== Example 1: Crawl All Banks ===\n');
