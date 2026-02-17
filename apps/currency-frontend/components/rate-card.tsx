@@ -1,5 +1,5 @@
 import { ExchangeRate } from "@/lib/types";
-import { getRateChangeColor, isWithinLast7Days } from "@/lib/helpers";
+import { formatRate, getRateChangeColor, isWithinLast7Days, toFiniteNumber } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
 import { TrendingDown, TrendingUp, Minus } from "lucide-react";
 
@@ -10,9 +10,11 @@ interface RateCardProps {
 
 export function RateCard({ rate, previousRate }: RateCardProps) {
   const isRecent = isWithinLast7Days(rate.scrapedAt);
+  const official = toFiniteNumber(rate.officialRate);
+  const prevOfficial = toFiniteNumber(previousRate?.officialRate ?? null);
   const changeColor = getRateChangeColor(
-    rate.buyRate,
-    previousRate?.buyRate || null,
+    official,
+    prevOfficial,
     isRecent
   );
 
@@ -50,9 +52,9 @@ export function RateCard({ rate, previousRate }: RateCardProps) {
             )}
           >
             {changeColor === "green" ? (
-              <TrendingDown className="w-4 h-4" />
-            ) : (
               <TrendingUp className="w-4 h-4" />
+            ) : (
+              <TrendingDown className="w-4 h-4" />
             )}
           </div>
         )}
@@ -61,16 +63,16 @@ export function RateCard({ rate, previousRate }: RateCardProps) {
       <div className="space-y-2">
         <div className="flex justify-between items-center">
           <span className="text-sm text-muted-foreground">Buy Rate</span>
-          <span className="font-semibold">{rate.buyRate.toFixed(4)} GEL</span>
+          <span className="font-semibold">{formatRate(rate.buyRate, 4)} GEL</span>
         </div>
         <div className="flex justify-between items-center">
           <span className="text-sm text-muted-foreground">Sell Rate</span>
-          <span className="font-semibold">{rate.sellRate.toFixed(4)} GEL</span>
+          <span className="font-semibold">{formatRate(rate.sellRate, 4)} GEL</span>
         </div>
-        {rate.officialRate && (
+        {toFiniteNumber(rate.officialRate) !== null && (
           <div className="flex justify-between items-center pt-2 border-t border-border">
             <span className="text-sm text-muted-foreground">Official Rate</span>
-            <span className="font-medium">{rate.officialRate.toFixed(4)} GEL</span>
+            <span className="font-medium">{formatRate(rate.officialRate, 4)} GEL</span>
           </div>
         )}
       </div>

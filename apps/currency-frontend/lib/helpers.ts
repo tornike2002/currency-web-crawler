@@ -1,20 +1,38 @@
 import { ExchangeRate, GroupedRates } from "./types";
 
+export function toFiniteNumber(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  const n = typeof value === "number" ? value : typeof value === "string" ? Number(value) : NaN;
+  return Number.isFinite(n) ? n : null;
+}
+
+export function formatRate(value: unknown, digits = 4): string {
+  const n = toFiniteNumber(value);
+  return n === null ? "—" : n.toFixed(digits);
+}
+
 /**
  * Group exchange rates by date
  */
 export function groupRatesByDate(rates: ExchangeRate[]): GroupedRates[] {
-  const grouped = rates.reduce((acc, rate) => {
+  // Keep only the latest entry per bank (source) for each date.
+  const byDateAndSource = rates.reduce((acc, rate) => {
     const date = new Date(rate.scrapedAt).toISOString().split("T")[0];
     if (!acc[date]) {
-      acc[date] = [];
+      acc[date] = {};
     }
-    acc[date].push(rate);
+    const existing = acc[date][rate.source];
+    if (
+      !existing ||
+      new Date(rate.scrapedAt).getTime() > new Date(existing.scrapedAt).getTime()
+    ) {
+      acc[date][rate.source] = rate;
+    }
     return acc;
-  }, {} as Record<string, ExchangeRate[]>);
+  }, {} as Record<string, Record<string, ExchangeRate>>);
 
-  return Object.entries(grouped)
-    .map(([date, rates]) => ({ date, rates }))
+  return Object.entries(byDateAndSource)
+    .map(([date, bySource]) => ({ date, rates: Object.values(bySource) }))
     .sort((a, b) => b.date.localeCompare(a.date)); // Sort by date descending
 }
 
@@ -30,22 +48,25 @@ export function isWithinLast7Days(dateString: string): boolean {
 }
 
 /**
- * Determine if rate change is good (green) or bad (red)
- * Good = rate went down (better for buying USD)
- * Bad = rate went up (worse for buying USD)
+ * Determine direction of rate change (used for coloring/arrows)
+ * Green = rate went up, Red = rate went down
  */
 export function getRateChangeColor(
-  currentRate: number,
+  currentRate: number | null,
   previousRate: number | null,
   isWithin7Days: boolean
 ): "green" | "red" | "default" {
-  if (!isWithin7Days || previousRate === null) {
+  if (!isWithin7Days || previousRate === null || currentRate === null) {
     return "default";
   }
 
-  // If current rate is lower than previous, it's good (green)
-  // If current rate is higher than previous, it's bad (red)
-  return currentRate < previousRate ? "green" : "red";
+  if (currentRate === previousRate) {
+    return "default";
+  }
+
+  // If current rate is higher than previous, show green (up)
+  // If current rate is lower than previous, show red (down)
+  return currentRate > previousRate ? "green" : "red";
 }
 
 /**

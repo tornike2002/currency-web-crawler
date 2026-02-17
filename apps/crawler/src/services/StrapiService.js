@@ -26,13 +26,15 @@ class StrapiService {
       
       // Format data for Strapi schema
       // Schema fields: source, currency, buyRate, sellRate, officialRate, scrapedAt
+      const isNumber = (v) => typeof v === 'number' && Number.isFinite(v);
+
       const payload = {
         data: {
           source: rateData.bank,              // Using 'source' field for bank name
           currency: rateData.currency,
-          buyRate: rateData.buy,
-          sellRate: rateData.sell,
-          officialRate: rateData.official,
+          ...(isNumber(rateData.buy) ? { buyRate: rateData.buy } : {}),
+          ...(isNumber(rateData.sell) ? { sellRate: rateData.sell } : {}),
+          ...(isNumber(rateData.official) ? { officialRate: rateData.official } : {}),
           scrapedAt: rateData.timestamp
         }
       };

@@ -442,7 +442,7 @@ export interface ApiExchangeRateExchangeRate
     draftAndPublish: true;
   };
   attributes: {
-    buyRate: Schema.Attribute.Decimal & Schema.Attribute.Required;
+    buyRate: Schema.Attribute.Decimal;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -461,7 +461,7 @@ export interface ApiExchangeRateExchangeRate
     officialRate: Schema.Attribute.Decimal;
     publishedAt: Schema.Attribute.DateTime;
     scrapedAt: Schema.Attribute.Date & Schema.Attribute.Required;
-    sellRate: Schema.Attribute.Decimal & Schema.Attribute.Required;
+    sellRate: Schema.Attribute.Decimal;
     source: Schema.Attribute.String &
       Schema.Attribute.Required &
       Schema.Attribute.SetMinMaxLength<{

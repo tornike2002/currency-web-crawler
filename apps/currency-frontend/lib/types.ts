@@ -2,9 +2,10 @@ export interface ExchangeRate {
   id: number;
   source: string;
   currency: string;
-  buyRate: number;
-  sellRate: number;
-  officialRate: number | null;
+  // Strapi decimals may come back as string; and some banks don't have buy/sell.
+  buyRate: number | string | null;
+  sellRate: number | string | null;
+  officialRate: number | string | null;
   scrapedAt: string;
 }
 

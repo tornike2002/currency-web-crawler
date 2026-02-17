@@ -1,7 +1,7 @@
 "use client";
 
 import { ExchangeRate } from "@/lib/types";
-import { getRateChangeColor, isWithinLast7Days } from "@/lib/helpers";
+import { formatRate, getRateChangeColor, isWithinLast7Days, toFiniteNumber } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
 import { TrendingDown, TrendingUp, Minus, DollarSign } from "lucide-react";
 
@@ -12,15 +12,20 @@ interface RateCardEnhancedProps {
 
 export function RateCardEnhanced({ rate, previousRate }: RateCardEnhancedProps) {
   const isRecent = isWithinLast7Days(rate.scrapedAt);
+  const buy = toFiniteNumber(rate.buyRate);
+  const sell = toFiniteNumber(rate.sellRate);
+  const official = toFiniteNumber(rate.officialRate);
+  const prevOfficial = toFiniteNumber(previousRate?.officialRate ?? null);
   const changeColor = getRateChangeColor(
-    rate.buyRate,
-    previousRate?.buyRate || null,
+    official,
+    prevOfficial,
     isRecent
   );
 
-  const changePercent = previousRate
-    ? ((rate.buyRate - previousRate.buyRate) / previousRate.buyRate) * 100
-    : 0;
+  const changePercent =
+    official !== null && prevOfficial !== null
+      ? ((official - prevOfficial) / prevOfficial) * 100
+      : 0;
 
   const cardGradient =
     changeColor === "green"
@@ -32,7 +37,7 @@ export function RateCardEnhanced({ rate, previousRate }: RateCardEnhancedProps) 
   return (
     <div
       className={cn(
-        "group relative overflow-hidden rounded-xl border bg-gradient-to-br backdrop-blur-sm",
+        "group relative overflow-hidden rounded-xl border bg-linear-to-br backdrop-blur-sm",
         "transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-black/30",
         cardGradient,
         isRecent && "ring-1 ring-offset-2 ring-offset-background",
@@ -42,7 +47,7 @@ export function RateCardEnhanced({ rate, previousRate }: RateCardEnhancedProps) 
     >
       {/* Animated background pattern */}
       <div className="absolute inset-0 opacity-5">
-        <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,.05)_50%,transparent_75%,transparent_100%)] bg-[length:20px_20px] animate-[shimmer_3s_linear_infinite]" />
+        <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,.05)_50%,transparent_75%,transparent_100%)] bg-size-[20px_20px] animate-[shimmer_3s_linear_infinite]" />
       </div>
 
       <div className="relative z-10 p-5">
@@ -74,9 +79,9 @@ export function RateCardEnhanced({ rate, previousRate }: RateCardEnhancedProps) 
               )}
             >
               {changeColor === "green" ? (
-                <TrendingDown className="w-4 h-4" />
-              ) : (
                 <TrendingUp className="w-4 h-4" />
+              ) : (
+                <TrendingDown className="w-4 h-4" />
               )}
               <span className="text-xs font-semibold">
                 {changePercent > 0 ? "+" : ""}
@@ -95,7 +100,7 @@ export function RateCardEnhanced({ rate, previousRate }: RateCardEnhancedProps) 
                 Buy Rate
               </p>
               <p className="text-2xl font-bold mt-1 tracking-tight">
-                {rate.buyRate.toFixed(4)}
+                {formatRate(rate.buyRate, 4)}
               </p>
             </div>
             <div className="text-right">
@@ -110,7 +115,7 @@ export function RateCardEnhanced({ rate, previousRate }: RateCardEnhancedProps) 
                 Sell Rate
               </p>
               <p className="text-2xl font-bold mt-1 tracking-tight">
-                {rate.sellRate.toFixed(4)}
+                {formatRate(rate.sellRate, 4)}
               </p>
             </div>
             <div className="text-right">
@@ -119,14 +124,15 @@ export function RateCardEnhanced({ rate, previousRate }: RateCardEnhancedProps) 
           </div>
 
           {/* Official Rate */}
-          {rate.officialRate && (
+          {toFiniteNumber(rate.officialRate) !== null && (
             <div className="pt-3 border-t border-border/30">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-muted-foreground">
                   Official Rate
                 </span>
                 <span className="text-lg font-semibold">
-                  {rate.officialRate.toFixed(4)} <span className="text-xs text-muted-foreground">GEL</span>
+                  {formatRate(rate.officialRate, 4)}{" "}
+                  <span className="text-xs text-muted-foreground">GEL</span>
                 </span>
               </div>
             </div>
@@ -137,7 +143,7 @@ export function RateCardEnhanced({ rate, previousRate }: RateCardEnhancedProps) 
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">Spread</span>
               <span className="font-mono font-semibold">
-                {(rate.sellRate - rate.buyRate).toFixed(4)} GEL
+                {buy !== null && sell !== null ? `${(sell - buy).toFixed(4)} GEL` : "—"}
               </span>
             </div>
           </div>

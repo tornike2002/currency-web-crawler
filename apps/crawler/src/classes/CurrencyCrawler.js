@@ -4,9 +4,48 @@
  */
 
 const puppeteer = require('puppeteer');
+const fs = require('fs');
+const path = require('path');
 const { log } = require('../utils/helpers');
 const BOGScraperAPI = require('../scrapers/BOGScraperAPI');
+const CREDOscraper = require('../scrapers/CREDOscraper');
+const SOLOscraper = require('../scrapers/SOLOscraper');
 const TBCScraper = require('../scrapers/TBCScraper');
+
+function resolveChromeStablePath() {
+  const fromEnv =
+    process.env.CHROME_PATH ||
+    process.env.PUPPETEER_EXECUTABLE_PATH ||
+    process.env.PUPPETEER_CHROMIUM_EXECUTABLE_PATH;
+
+  if (fromEnv && fs.existsSync(fromEnv)) return fromEnv;
+
+  const candidates = [];
+
+  if (process.platform === 'win32') {
+    candidates.push(
+      'C:\\\\Program Files\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe',
+      'C:\\\\Program Files (x86)\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe'
+    );
+    if (process.env.LOCALAPPDATA) {
+      candidates.push(path.join(process.env.LOCALAPPDATA, 'Google\\Chrome\\Application\\chrome.exe'));
+    }
+  } else if (process.platform === 'darwin') {
+    candidates.push('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome');
+  } else {
+    candidates.push('/usr/bin/google-chrome-stable', '/usr/bin/google-chrome', '/snap/bin/chromium');
+  }
+
+  for (const p of candidates) {
+    try {
+      if (p && fs.existsSync(p)) return p;
+    } catch (_) {
+      // ignore
+    }
+  }
+
+  return null;
+}
 
 class CurrencyCrawler {
   constructor(options = {}) {
@@ -26,9 +65,17 @@ class CurrencyCrawler {
     log('info', 'Initializing Currency Crawler...');
     
     try {
+      const chromePath = resolveChromeStablePath();
+      if (chromePath) {
+        log('info', 'Using Google Chrome Stable executable', { chromePath });
+      } else {
+        log('warn', 'Google Chrome Stable not found; falling back to bundled Chromium');
+      }
+
       // Launch browser with Puppeteer
       this.browser = await puppeteer.launch({
         headless: this.options.headless ? 'new' : false,
+        executablePath: chromePath || undefined,
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
@@ -47,7 +94,9 @@ class CurrencyCrawler {
 
       // Initialize scrapers
       this.scrapers = [
-        new BOGScraperAPI(), // API-based, no browser needed
+        new BOGScraperAPI(this.browser),
+        new CREDOscraper(),
+        new SOLOscraper(),
         new TBCScraper(this.browser)
       ];
 

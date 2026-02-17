@@ -1,7 +1,7 @@
 "use client";
 
 import { ExchangeRate } from "@/lib/types";
-import { getRateChangeColor, isWithinLast7Days } from "@/lib/helpers";
+import { formatRate, getRateChangeColor, isWithinLast7Days, toFiniteNumber } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
 import { TrendingDown, TrendingUp, DollarSign } from "lucide-react";
 
@@ -47,17 +47,19 @@ export function RateTable({ rates, previousRates }: RateTableProps) {
           {rates.map((rate, index) => {
             const previousRate = getPreviousRate(rate);
             const isRecent = isWithinLast7Days(rate.scrapedAt);
-            const changeColor = getRateChangeColor(
-              rate.buyRate,
-              previousRate?.buyRate || null,
-              isRecent
-            );
+            const buy = toFiniteNumber(rate.buyRate);
+            const sell = toFiniteNumber(rate.sellRate);
+            const official = toFiniteNumber(rate.officialRate);
+            const prevOfficial = toFiniteNumber(previousRate?.officialRate ?? null);
 
-            const changePercent = previousRate
-              ? ((rate.buyRate - previousRate.buyRate) / previousRate.buyRate) * 100
-              : null;
+            const changeColor = getRateChangeColor(official, prevOfficial, isRecent);
 
-            const spread = rate.sellRate - rate.buyRate;
+            const changePercent =
+              official !== null && prevOfficial !== null
+                ? ((official - prevOfficial) / prevOfficial) * 100
+                : null;
+
+            const spread = buy !== null && sell !== null ? sell - buy : null;
 
             return (
               <tr
@@ -88,9 +90,9 @@ export function RateTable({ rates, previousRates }: RateTableProps) {
 
                 {/* Official Rate */}
                 <td className="px-6 py-4 whitespace-nowrap text-right">
-                  {rate.officialRate ? (
+                  {toFiniteNumber(rate.officialRate) !== null ? (
                     <span className="font-semibold text-foreground">
-                      {rate.officialRate.toFixed(4)}
+                      {formatRate(rate.officialRate, 4)}
                     </span>
                   ) : (
                     <span className="text-muted-foreground">—</span>
@@ -101,7 +103,7 @@ export function RateTable({ rates, previousRates }: RateTableProps) {
                 <td className="px-6 py-4 whitespace-nowrap text-right">
                   <div className="flex items-center justify-end gap-2">
                     <span className="font-bold text-lg text-foreground">
-                      {rate.buyRate.toFixed(4)}
+                      {formatRate(rate.buyRate, 4)}
                     </span>
                     <span className="text-xs text-muted-foreground">GEL</span>
                   </div>
@@ -111,7 +113,7 @@ export function RateTable({ rates, previousRates }: RateTableProps) {
                 <td className="px-6 py-4 whitespace-nowrap text-right">
                   <div className="flex items-center justify-end gap-2">
                     <span className="font-bold text-lg text-foreground">
-                      {rate.sellRate.toFixed(4)}
+                      {formatRate(rate.sellRate, 4)}
                     </span>
                     <span className="text-xs text-muted-foreground">GEL</span>
                   </div>
@@ -119,10 +121,16 @@ export function RateTable({ rates, previousRates }: RateTableProps) {
 
                 {/* Spread */}
                 <td className="px-6 py-4 whitespace-nowrap text-right">
-                  <span className="font-mono font-medium text-foreground">
-                    {spread.toFixed(4)}
-                  </span>
-                  <span className="text-xs text-muted-foreground ml-1">GEL</span>
+                  {spread !== null ? (
+                    <>
+                      <span className="font-mono font-medium text-foreground">
+                        {spread.toFixed(4)}
+                      </span>
+                      <span className="text-xs text-muted-foreground ml-1">GEL</span>
+                    </>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
                 </td>
 
                 {/* Change */}
@@ -139,9 +147,9 @@ export function RateTable({ rates, previousRates }: RateTableProps) {
                       )}
                     >
                       {changeColor === "green" ? (
-                        <TrendingDown className="w-3 h-3" />
-                      ) : changeColor === "red" ? (
                         <TrendingUp className="w-3 h-3" />
+                      ) : changeColor === "red" ? (
+                        <TrendingDown className="w-3 h-3" />
                       ) : null}
                       <span>
                         {changePercent > 0 ? "+" : ""}

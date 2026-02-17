@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { getExchangeRates } from "@/app/actions/exchange-rates";
-import { groupRatesByDate } from "@/lib/helpers";
+import { groupRatesByDate, toFiniteNumber } from "@/lib/helpers";
 import { RateGroupTable } from "./rate-group-table";
 import { StatCard } from "./stat-card";
 import { GroupedRates } from "@/lib/types";
@@ -40,8 +40,8 @@ export function ExchangeRatesClient({
     setError(null);
     try {
       const response = await getExchangeRates();
-      const grouped = groupRatesByDate(response.data);
-      setGroups(grouped);
+      const groupedAll = groupRatesByDate(response.data);
+      setGroups(groupedAll);
     } catch (err) {
       setError("Failed to load exchange rates. Make sure Strapi is running.");
       console.error(err);
@@ -60,35 +60,58 @@ export function ExchangeRatesClient({
 
     if (latestGroup.rates.length === 0) return null;
 
+    const latestBuys = latestGroup.rates
+      .map((r) => toFiniteNumber(r.buyRate))
+      .filter((v): v is number => v !== null);
+
+    const latestSells = latestGroup.rates
+      .map((r) => toFiniteNumber(r.sellRate))
+      .filter((v): v is number => v !== null);
+
     // Average buy rate
     const avgBuyRate =
-      latestGroup.rates.reduce((sum, r) => sum + r.buyRate, 0) /
-      latestGroup.rates.length;
+      latestBuys.length > 0
+        ? latestBuys.reduce((sum, v) => sum + v, 0) / latestBuys.length
+        : null;
 
     // Average sell rate
     const avgSellRate =
-      latestGroup.rates.reduce((sum, r) => sum + r.sellRate, 0) /
-      latestGroup.rates.length;
+      latestSells.length > 0
+        ? latestSells.reduce((sum, v) => sum + v, 0) / latestSells.length
+        : null;
 
     // Best buy rate (lowest)
-    const bestBuy = Math.min(...latestGroup.rates.map((r) => r.buyRate));
-    const bestBuyBank = latestGroup.rates.find((r) => r.buyRate === bestBuy);
+    const bestBuy =
+      latestBuys.length > 0 ? Math.min(...latestBuys) : null;
+    const bestBuyBank =
+      bestBuy !== null
+        ? latestGroup.rates.find((r) => toFiniteNumber(r.buyRate) === bestBuy)
+        : null;
 
     // Best sell rate (highest)
-    const bestSell = Math.max(...latestGroup.rates.map((r) => r.sellRate));
-    const bestSellBank = latestGroup.rates.find((r) => r.sellRate === bestSell);
+    const bestSell =
+      latestSells.length > 0 ? Math.max(...latestSells) : null;
+    const bestSellBank =
+      bestSell !== null
+        ? latestGroup.rates.find((r) => toFiniteNumber(r.sellRate) === bestSell)
+        : null;
 
     // Trend calculation
     let buyTrend = null;
     if (previousGroup && previousGroup.rates.length > 0) {
-      const prevAvgBuy =
-        previousGroup.rates.reduce((sum, r) => sum + r.buyRate, 0) /
-        previousGroup.rates.length;
-      const change = ((avgBuyRate - prevAvgBuy) / prevAvgBuy) * 100;
-      buyTrend = {
-        value: Math.abs(change),
-        isPositive: change < 0, // Lower is better for buyers
-      };
+      const prevBuys = previousGroup.rates
+        .map((r) => toFiniteNumber(r.buyRate))
+        .filter((v): v is number => v !== null);
+
+      if (avgBuyRate !== null && prevBuys.length > 0) {
+        const prevAvgBuy =
+          prevBuys.reduce((sum, v) => sum + v, 0) / prevBuys.length;
+        const change = ((avgBuyRate - prevAvgBuy) / prevAvgBuy) * 100;
+        buyTrend = {
+          value: Math.abs(change),
+          isPositive: change < 0, // Lower is better for buyers
+        };
+      }
     }
 
     return {
@@ -107,14 +130,14 @@ export function ExchangeRatesClient({
   return (
     <div className="min-h-screen bg-background">
       {/* Gradient Background Overlay */}
-      <div className="fixed inset-0 bg-gradient-to-b from-blue-950/5 via-transparent to-purple-950/5 pointer-events-none" />
+      <div className="fixed inset-0 bg-linear-to-b from-blue-950/5 via-transparent to-purple-950/5 pointer-events-none" />
       
       <div className="relative z-10 container mx-auto px-4 py-8 max-w-7xl">
         {/* Header */}
         <div className="mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <div>
-              <h1 className="text-5xl font-bold mb-2 bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
+              <h1 className="text-5xl font-bold mb-2 bg-linear-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
                 Currency Exchange Rates
               </h1>
               <p className="text-muted-foreground text-lg">
@@ -159,22 +182,22 @@ export function ExchangeRatesClient({
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <StatCard
               title="Average Buy Rate"
-              value={stats.avgBuyRate.toFixed(4)}
+              value={stats.avgBuyRate === null ? "—" : stats.avgBuyRate.toFixed(4)}
               subtitle="GEL per USD"
               icon={TrendingDown}
               gradient="blue"
-              trend={stats.buyTrend}
+              trend={stats.buyTrend ?? undefined}
             />
             <StatCard
               title="Average Sell Rate"
-              value={stats.avgSellRate.toFixed(4)}
+              value={stats.avgSellRate === null ? "—" : stats.avgSellRate.toFixed(4)}
               subtitle="GEL per USD"
               icon={TrendingUp}
               gradient="purple"
             />
             <StatCard
               title="Best Buy Rate"
-              value={stats.bestBuy.toFixed(4)}
+              value={stats.bestBuy === null ? "—" : stats.bestBuy.toFixed(4)}
               subtitle={stats.bestBuyBank}
               icon={DollarSign}
               gradient="green"
@@ -216,7 +239,7 @@ export function ExchangeRatesClient({
         {/* Rates Groups */}
         {!loading && !error && groups.length > 0 && (
           <div className="space-y-6">
-            {groups.map((group, index) => (
+            {groups.slice(0, 1).map((group, index) => (
               <RateGroupTable
                 key={group.date}
                 group={group}

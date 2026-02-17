@@ -7,6 +7,9 @@
     "apps/*"
   ],
   "scripts": {
+    "dev": "concurrently -k -n BACKEND,FRONTEND,CRAWLER -c magenta,green,cyan \"npm run backend:dev\" \"npm run frontend:dev\" \"npm run crawler:schedule\"",
+    "dev:once": "concurrently -k -n BACKEND,FRONTEND,CRAWLER -c magenta,green,cyan \"npm run backend:dev\" \"npm run frontend:dev\" \"npm run crawler:start\"",
+    "start:all": "concurrently -k -n BACKEND,FRONTEND,CRAWLER -c magenta,green,cyan \"npm run backend:start\" \"npm run frontend:start\" \"npm run crawler:schedule\"",
     "crawler:start": "npm run start --workspace=crawler",
     "crawler:schedule": "npm run schedule --workspace=crawler",
     "backend:dev": "npm run dev --workspace=currency-backend",
@@ -27,5 +30,8 @@
     "nextjs"
   ],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
 }

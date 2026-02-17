@@ -25,11 +25,11 @@
     },
     "buyRate": {
       "type": "decimal",
-      "required": true
+      "required": false
     },
     "sellRate": {
       "type": "decimal",
-      "required": true
+      "required": false
     },
     "officialRate": {
       "type": "decimal",
